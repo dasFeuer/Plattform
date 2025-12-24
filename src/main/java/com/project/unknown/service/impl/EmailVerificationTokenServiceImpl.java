@@ -33,8 +33,8 @@ public class EmailVerificationTokenServiceImpl implements EmailVerificationToken
           EmailVerificationToken emailVerificationToken = new EmailVerificationToken(token, user);
           emailVerificationTokenRepository.save(emailVerificationToken);
 
-          String verificationToken = "http://localhost:8080/api/verify-email?token=" + token;
-          emailService.sendVerificationEmail(user.getEmail(), verificationToken);
+          String verificationLink = "http://localhost:5173/verify-email?token=" + token;
+          emailService.sendVerificationEmail(user.getEmail(), verificationLink);
      }
 
      @Transactional
