@@ -1,5 +1,6 @@
 package com.project.unknown.domain.dtos.commentDto;
 
+import com.project.unknown.domain.dtos.userDto.AuthorDto;
 import com.project.unknown.domain.entities.postEntity.Post;
 import com.project.unknown.domain.entities.reactionEntity.Reaction;
 import com.project.unknown.domain.entities.userEntity.User;
@@ -24,7 +25,7 @@ public class CommentDto {
 
     private Post post;
 
-    private User author;
+    private AuthorDto author;
 
     private List<Reaction> reactions = new ArrayList<>();
 

@@ -4,11 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class AuthorDto {
+import java.time.LocalDateTime;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserProfileDto {
     private Long id;
 
     private String firstName;
@@ -16,4 +17,15 @@ public class AuthorDto {
     private String lastName;
 
     private String username;
+
+    private String email;
+
+    private LocalDateTime createdAt;
+
+    private boolean verified;
+
+    private Long totalPosts;
+    private Long totalComments;
+    private Long totalReactions;
+
 }

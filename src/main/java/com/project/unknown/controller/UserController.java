@@ -6,6 +6,7 @@ import com.project.unknown.domain.UpdateUserDataRequest;
 import com.project.unknown.domain.dtos.userDto.PatchUserDataRequestDto;
 import com.project.unknown.domain.dtos.userDto.UpdateUserDataRequestDto;
 import com.project.unknown.domain.dtos.userDto.UserDto;
+import com.project.unknown.domain.dtos.userDto.UserProfileDto;
 import com.project.unknown.domain.entities.userEntity.User;
 import com.project.unknown.mapper.UserMapper;
 import com.project.unknown.service.UserService;
@@ -39,9 +40,9 @@ public class UserController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<UserDto>> getAl(){
+    public ResponseEntity<List<UserProfileDto>> getAll(){
         List<User> allUser = userService.getAllUser();
-        List<UserDto> list = allUser.stream().map(userMapper::toDto).toList();
+        List<UserProfileDto> list = allUser.stream().map(userMapper::toUserProfile).toList();
         return ResponseEntity.ok(list);
     }
 

@@ -1,8 +1,8 @@
 package com.project.unknown.domain.dtos.reactionDto;
 
+import com.project.unknown.domain.dtos.userDto.AuthorDto;
 import com.project.unknown.domain.entities.commentEntity.Comment;
 import com.project.unknown.domain.entities.postEntity.Post;
-import com.project.unknown.domain.entities.userEntity.User;
 import com.project.unknown.enums.ReactionType;
 import lombok.*;
 
@@ -17,7 +17,7 @@ public class ReactionDto {
 
     private ReactionType type;
 
-    private User user;
+    private AuthorDto user;
 
     private Post post;
 
