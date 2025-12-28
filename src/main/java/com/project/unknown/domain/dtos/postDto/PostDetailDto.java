@@ -17,21 +17,17 @@ import java.util.Map;
 @AllArgsConstructor
 public class PostDetailDto {
     private Long id;
-
     private String title;
-
     private String content;
-
     private AuthorDto author;
 
-    private List<CommentDto> recentComments;
-    private Long totalCommentsCount;
-
-    private Map<ReactionType, Long> reactionSummary;
-    private ReactionDto currentUserReaction;
+    // Counts für Comments/Reactions
+    private Long commentsCount;
+    private Long reactionsCount;
 
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
 
+    // private List<CommentDto> recentComments;
+    // private ReactionsSummaryDto reactionsSummary;
 }

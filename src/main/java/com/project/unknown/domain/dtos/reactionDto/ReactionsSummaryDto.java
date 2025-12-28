@@ -1,19 +1,18 @@
 package com.project.unknown.domain.dtos.reactionDto;
 
 import com.project.unknown.enums.ReactionType;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateReactionDto {
+public class ReactionsSummaryDto {
 
-    @NotNull(message = "Reaction type is required")
-    private ReactionType type;
-
-    private Long postId;
-    private Long commentId;
+    private Map<ReactionType, Long> counts;
+    private Long totalReactions;
+    private ReactionDto currentUserReaction;
 }

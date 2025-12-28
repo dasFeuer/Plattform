@@ -1,90 +1,75 @@
 package com.project.unknown.controller;
 
 import com.project.unknown.config.GeneralEndPointAccess;
-import com.project.unknown.domain.PatchUserDataRequest;
-import com.project.unknown.domain.UpdateUserDataRequest;
-import com.project.unknown.domain.dtos.userDto.PatchUserDataRequestDto;
-import com.project.unknown.domain.dtos.userDto.UpdateUserDataRequestDto;
-import com.project.unknown.domain.dtos.userDto.UserDto;
-import com.project.unknown.domain.dtos.userDto.UserProfileDto;
-import com.project.unknown.domain.entities.userEntity.User;
-import com.project.unknown.mapper.UserMapper;
+import com.project.unknown.domain.dtos.userDto.*;
 import com.project.unknown.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping("/api/users")
+@Slf4j
 public class UserController {
 
     private final UserService userService;
-    private final UserMapper userMapper;
     private final GeneralEndPointAccess endPointAccess;
 
-    @GetMapping("/{id}/id")
-    public ResponseEntity<UserDto> getById(@PathVariable Long id){
-        Optional<User> userById = userService.getUserById(id);
-        if ((userById.isPresent())){
-            UserDto dto = userMapper.toDto(userById.get());
-            return ResponseEntity.ok(dto);
-        }
-        return ResponseEntity.notFound().build();
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
+        log.info("GET request received for user with ID: {}", id);
+        UserResponseDto user = userService.getUserById(id);
+        log.debug("Successfully retrieved user with ID: {}", id);
+        return ResponseEntity.ok(user);
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<List<UserProfileDto>> getAll(){
-        List<User> allUser = userService.getAllUser();
-        List<UserProfileDto> list = allUser.stream().map(userMapper::toUserProfile).toList();
-        return ResponseEntity.ok(list);
+    @GetMapping("/{id}/profile")
+    public ResponseEntity<UserProfileDto> getUserProfile(@PathVariable Long id) {
+        log.info("GET request received for user profile with ID: {}", id);
+        UserProfileDto profile = userService.getUserProfile(id);
+        log.debug("Successfully retrieved profile for user ID: {}", id);
+        return ResponseEntity.ok(profile);
     }
 
-    @DeleteMapping("/{id}/delete")
-    public ResponseEntity<Void> deleteById(@PathVariable Long id){
-        userService.deleteUserById(id);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    @GetMapping
+    public ResponseEntity<List<UserProfileDto>> getAllUsers() {
+        log.info("GET request received for all users");
+        List<UserProfileDto> users = userService.getAllUsers();
+        log.debug("Successfully retrieved {} users", users.size());
+        return ResponseEntity.ok(users);
     }
 
-    @PatchMapping("/{id}/patchData")
-    public ResponseEntity<UserDto> patchUserData(@PathVariable Long id,
-                                                 @RequestBody PatchUserDataRequestDto patchUserDataRequestDto)
-            throws IOException {
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponseDto> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserRequestDto requestDto) {
+
+        log.info("PUT request received to update user with ID: {}", id);
 
         endPointAccess.validateUserAccess(id);
+        log.debug("User access validated for ID: {}", id);
 
-        try {
-            PatchUserDataRequest patchUserDataRequest = userMapper.toPatchUserDataRequest(patchUserDataRequestDto);
-            User updatedUser = userService.patchUserInfo(id, patchUserDataRequest);
-            UserDto userDto = userMapper.toDto(updatedUser);
-            return ResponseEntity.ok().body(userDto);
-        } catch (Exception e){
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        UserResponseDto updatedUser = userService.updateUser(id, requestDto);
+        log.info("User successfully updated with ID: {}", id);
+
+        return ResponseEntity.ok(updatedUser);
     }
 
-    @PutMapping("/{id}/updateData")
-    public ResponseEntity<UserDto> updateUserData(@PathVariable Long id,
-                                                  @Valid @RequestBody UpdateUserDataRequestDto updateUserDataRequestDto)
-            throws IOException {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        log.info("DELETE request received for user with ID: {}", id);
 
         endPointAccess.validateUserAccess(id);
+        log.debug("User access validated for ID: {}", id);
 
-        try{
-            UpdateUserDataRequest updateUserDataRequest = userMapper.toUpdateUserDataRequest(updateUserDataRequestDto);
-            User updatedUser = userService.updateUserInfo(id, updateUserDataRequest);
-            UserDto updatedUserDto = userMapper.toDto(updatedUser);
-            return ResponseEntity.ok().body(updatedUserDto);
-        } catch (Exception e){
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        userService.deleteUser(id);
+        log.info("User successfully deleted with ID: {}", id);
+
+        return ResponseEntity.noContent().build();
     }
-
-
 }

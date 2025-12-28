@@ -1,17 +1,26 @@
 package com.project.unknown.service;
 
-import com.project.unknown.domain.CreatePostRequest;
-import com.project.unknown.domain.UpdatePostRequest;
+import com.project.unknown.domain.PagedResponse;
+import com.project.unknown.domain.dtos.postDto.CreatePostRequestDto;
+import com.project.unknown.domain.dtos.postDto.PostDetailDto;
+import com.project.unknown.domain.dtos.postDto.PostSummaryDto;
+import com.project.unknown.domain.dtos.postDto.UpdatePostRequestDto;
 import com.project.unknown.domain.entities.postEntity.Post;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface PostService {
-    Post createPost (Long userId, CreatePostRequest createPostRequest);
-    List<Post> getAllPosts();
+
+    // API Methoden (geben DTO zurück)
+    PostDetailDto createPost(CreatePostRequestDto requestDto, String authorEmail);
+    PostDetailDto getPostById(Long id);
+    PagedResponse<PostSummaryDto> getAllPosts(int page, int size, String[] sort);
+    PagedResponse<PostSummaryDto> getPostsByAuthorId(Long authorId, int page, int size);
+    PagedResponse<PostSummaryDto> searchPostsByTitle(String keyword, int page, int size);
+    PostDetailDto updatePost(Long id, UpdatePostRequestDto requestDto, String authorEmail);
+    void deletePost(Long id, String authorEmail);
+
+    // Interne Methoden- geben Entity zurück)
     Optional<Post> findPostById(Long id);
-    Post getPostById(Long id);
-    void deletePostById(Long id);
-    Post updatePostById(Long id, UpdatePostRequest updatePostRequest);
+    Post getPostEntityById(Long id);
 }

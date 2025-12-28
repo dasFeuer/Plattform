@@ -28,7 +28,7 @@ public class PostSummaryDto {
     private Long commentsCount;
     private Long reactionsCount;
 
-    private Map<ReactionType, Long> reactionSummary;
+//    private Map<ReactionType, Long> reactionSummary;
 
     private LocalDateTime createdAt;
 

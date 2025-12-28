@@ -1,18 +1,19 @@
 package com.project.unknown.domain.dtos.reactionDto;
 
-import com.project.unknown.domain.dtos.userDto.AuthorDto;
 import com.project.unknown.enums.ReactionType;
-import lombok.*;
-
-import java.time.LocalDateTime;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReactionDto {
+public class CreateReactionDto {
 
-    private Long id;
+    @NotNull(message = "Reaction type is required")
     private ReactionType type;
-    private AuthorDto user;
-    private LocalDateTime createdAt;
+
+    private Long postId;
+    private Long commentId;
 }

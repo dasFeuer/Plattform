@@ -1,87 +1,129 @@
 package com.project.unknown.controller;
 
-import com.project.unknown.config.GeneralEndPointAccess;
-import com.project.unknown.domain.CreatePostRequest;
-import com.project.unknown.domain.UpdatePostRequest;
-import com.project.unknown.domain.dtos.postDto.CreatePostRequestDto;
-import com.project.unknown.domain.dtos.postDto.PostDto;
-import com.project.unknown.domain.dtos.postDto.UpdatePostRequestDto;
-import com.project.unknown.domain.entities.postEntity.Post;
-import com.project.unknown.domain.entities.userEntity.User;
-import com.project.unknown.mapper.PostMapper;
+import com.project.unknown.domain.PagedResponse;
+import com.project.unknown.domain.dtos.postDto.*;
 import com.project.unknown.service.PostService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Optional;
 
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping("/api/posts")
+@Slf4j
 public class PostController {
-
-    private final PostMapper postMapper;
-
     private final PostService postService;
 
-    private final GeneralEndPointAccess endPointAccess;
+    @PostMapping
+    public ResponseEntity<PostDetailDto> createPost(
+            @Valid @RequestBody CreatePostRequestDto requestDto,
+            Authentication authentication) {
 
-    @PostMapping("/{userId}/create-post")
-    public ResponseEntity<PostDto> createPost(@PathVariable Long userId,
-                                              @RequestBody CreatePostRequestDto createPostRequestDto){
-        CreatePostRequest createPost = postMapper.toCreatePost(createPostRequestDto);
-        Post post = postService.createPost(userId, createPost);
-        PostDto dto = postMapper.toDto(post);
-        return new ResponseEntity<>(dto, HttpStatus.CREATED);
+        log.info("POST request to create post with title: '{}'", requestDto.getTitle());
+
+        String authorEmail = authentication.getName();
+        PostDetailDto createdPost = postService.createPost(requestDto, authorEmail);
+
+        log.info("Post created successfully with ID: {}", createdPost.getId());
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(createdPost);
     }
 
 
-    @PutMapping("/{postId}/update-post")
-    public ResponseEntity<PostDto> updatePost(@PathVariable Long postId,
-                                              @RequestBody UpdatePostRequestDto updatePostRequestDto){
+    // GET /api/posts?page=0&size=10&sort=createdAt,desc
+    @GetMapping
+    public ResponseEntity<PagedResponse<PostSummaryDto>> getAllPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
 
-        Optional<User> authenticatedUser = endPointAccess.getAuthenticatedUser();
-        if (authenticatedUser.isPresent()){
-            if(endPointAccess.isPostOwnedByAuthor(postId, authenticatedUser.get())){
-                UpdatePostRequest updatePost = postMapper.toUpdatePost(updatePostRequestDto);
-                Post post = postService.updatePostById(postId, updatePost);
-                PostDto dto = postMapper.toDto(post);
-                return new ResponseEntity<>(dto, HttpStatus.OK);
-            }
-        }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        log.info("GET request for all posts - page: {}, size: {}", page, size);
+
+        PagedResponse<PostSummaryDto> posts = postService.getAllPosts(page, size, sort);
+
+        log.debug("Returning {} posts on page {}", posts.getContent().size(), page);
+
+        return ResponseEntity.ok(posts);
     }
 
-    @GetMapping("/{postId}/get-post")
-    public ResponseEntity<PostDto> getPostById(@PathVariable Long postId){
-        Post post = postService.getPostById(postId);
-            PostDto dto = postMapper.toDto(post);
-            return new ResponseEntity<>(dto, HttpStatus.OK);
+    @GetMapping("/{id}")
+    public ResponseEntity<PostDetailDto> getPostById(@PathVariable Long id) {
+        log.info("GET request for post with ID: {}", id);
+
+        PostDetailDto post = postService.getPostById(id);
+
+        log.debug("Successfully retrieved post with ID: {}", id);
+
+        return ResponseEntity.ok(post);
     }
 
-    @GetMapping("/getAllPosts")
-    public ResponseEntity<List<PostDto>> getPostById(){
-        List<Post> allPosts = postService.getAllPosts();
-        List<PostDto> list = allPosts
-                .stream()
-                .map(postMapper::toDto)
-                .toList();
-        return new ResponseEntity<>(list, HttpStatus.OK);
+    @GetMapping("/author/{authorId}")
+    public ResponseEntity<PagedResponse<PostSummaryDto>> getPostsByAuthor(
+            @PathVariable Long authorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        log.info("GET request for posts by author ID: {} - page: {}, size: {}", authorId, page, size);
+
+        PagedResponse<PostSummaryDto> posts = postService.getPostsByAuthorId(authorId, page, size);
+
+        log.debug("Returning {} posts for author {}", posts.getContent().size(), authorId);
+
+        return ResponseEntity.ok(posts);
     }
 
-    @DeleteMapping("/{postId}/delete-post")
-    public ResponseEntity<Void> deletePostById(@PathVariable Long postId){
-        Optional<User> authenticatedUser = endPointAccess.getAuthenticatedUser();
-        if (authenticatedUser.isPresent()){
-            if(endPointAccess.isPostOwnedByAuthor(postId, authenticatedUser.get())) {
-                postService.deletePostById(postId);
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-        }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
+    // GET /api/posts/search?keyword=spring&page=0&size=10
+    @GetMapping("/search")
+    public ResponseEntity<PagedResponse<PostSummaryDto>> searchPosts(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        log.info("GET request to search posts with keyword: '{}' - page: {}, size: {}", keyword, page, size);
+
+        PagedResponse<PostSummaryDto> posts = postService.searchPostsByTitle(keyword, page, size);
+
+        log.debug("Found {} posts matching keyword '{}'", posts.getTotalElements(), keyword);
+
+        return ResponseEntity.ok(posts);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PostDetailDto> updatePost(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdatePostRequestDto requestDto,
+            Authentication authentication) {
+
+        log.info("PUT request to update post with ID: {}", id);
+
+        String authorEmail = authentication.getName();
+        PostDetailDto updatedPost = postService.updatePost(id, requestDto, authorEmail);
+
+        log.info("Post {} updated successfully", id);
+
+        return ResponseEntity.ok(updatedPost);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePost(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        log.info("DELETE request for post with ID: {}", id);
+
+        String authorEmail = authentication.getName();
+        postService.deletePost(id, authorEmail);
+
+        log.info("Post {} deleted successfully", id);
+
+        return ResponseEntity.noContent().build();
     }
 }

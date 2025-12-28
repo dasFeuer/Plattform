@@ -1,121 +1,201 @@
 package com.project.unknown.service.impl;
 
-import com.project.unknown.domain.PatchUserDataRequest;
-import com.project.unknown.domain.RegisterUserRequest;
-import com.project.unknown.domain.UpdateUserDataRequest;
+
+import com.project.unknown.domain.dtos.userDto.RegisterUserRequestDto;
+import com.project.unknown.domain.dtos.userDto.UpdateUserRequestDto;
+import com.project.unknown.domain.dtos.userDto.UserProfileDto;
+import com.project.unknown.domain.dtos.userDto.UserResponseDto;
 import com.project.unknown.domain.entities.userEntity.User;
+import com.project.unknown.exception.DuplicateResourceException;
+import com.project.unknown.exception.ResourceNotFoundException;
+import com.project.unknown.mapper.UserMapper;
 import com.project.unknown.repository.UserRepository;
 import com.project.unknown.service.EmailVerificationTokenService;
 import com.project.unknown.service.UserService;
-import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final EmailVerificationTokenService emailVerificationTokenService;
+        private final UserRepository userRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final EmailVerificationTokenService emailVerificationTokenService;
+        private final UserMapper userMapper;
 
-    @Override
-    public User registerUser(RegisterUserRequest registerUserRequest) {
-        if(userRepository.existsByUsername(registerUserRequest.getUsername())){
-            throw new IllegalArgumentException("Username is already taken!");
+        @Override
+        @Transactional
+        public UserResponseDto registerUser(RegisterUserRequestDto requestDto) {
+            log.info("Attempting to register new user with username: {}", requestDto.getUsername());
+
+            if (userRepository.existsByUsername(requestDto.getUsername())) {
+                log.warn("Registration failed: Username '{}' is already taken", requestDto.getUsername());
+                throw new DuplicateResourceException(
+                        "Username '" + requestDto.getUsername() + "' is already taken"
+                );
+            }
+
+            if (userRepository.existsByEmail(requestDto.getEmail())) {
+                log.warn("Registration failed: Email '{}' is already registered", requestDto.getEmail());
+                throw new DuplicateResourceException(
+                        "Email '" + requestDto.getEmail() + "' is already registered"
+                );
+            }
+
+            User newUser = User.builder()
+                    .firstName(requestDto.getFirstName())
+                    .lastName(requestDto.getLastName())
+                    .username(requestDto.getUsername())
+                    .email(requestDto.getEmail())
+                    .password(passwordEncoder.encode(requestDto.getPassword()))
+                    .verified(false)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+            User savedUser = userRepository.save(newUser);
+            log.info("User successfully registered with ID: {} and username: {}",
+                    savedUser.getId(), savedUser.getUsername());
+
+            try {
+                emailVerificationTokenService.sendVerificationEmail(savedUser);
+                log.info("Verification email sent to: {}", savedUser.getEmail());
+            } catch (Exception e) {
+                log.error("Failed to send verification email to: {}", savedUser.getEmail(), e);
+            }
+
+            return userMapper.toResponseDto(savedUser);
         }
-        if(userRepository.existsByEmail(registerUserRequest.getEmail())){
-            throw new IllegalArgumentException("Email is already taken!");
+
+
+        @Override
+        public UserResponseDto getUserById(Long id) {
+            log.debug("Fetching user DTO for ID: {}", id);
+            User user = getUserEntityById(id);
+            return userMapper.toResponseDto(user);
         }
 
-        User newUser = new User();
-        newUser.setFirstName(registerUserRequest.getFirstName());
-        newUser.setLastName(registerUserRequest.getLastName());
-        newUser.setUsername(registerUserRequest.getUsername());
-        if(registerUserRequest.getEmail().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")){
-            newUser.setEmail(registerUserRequest.getEmail());
-        } else {
-            throw new IllegalArgumentException("Invalid email address!");
 
+        @Override
+        public UserProfileDto getUserProfile(Long id) {
+            log.debug("Fetching user profile for ID: {}", id);
+            User user = getUserEntityById(id);
+            return userMapper.toProfileDto(user);
         }
-        newUser.setPassword(passwordEncoder.encode(registerUserRequest.getPassword()));
-        User savedUser = userRepository.save(newUser);
-        emailVerificationTokenService.sendVerificationEmail(savedUser);
-        return savedUser;
-    }
 
-    @Override
-    public Optional<User> getUserById(Long id) {
-        if(!userRepository.existsById(id)){
-            throw new IllegalArgumentException("User Id " + id + " doesn't found");
-        } else {
-            return userRepository.findById(id);
+
+        @Override
+        public List<UserProfileDto> getAllUsers() {
+            log.debug("Fetching all users");
+            List<User> users = userRepository.findAll();
+            log.debug("Found {} users", users.size());
+            return userMapper.toProfileDtoList(users);
         }
-    }
 
-    @Override
-    public void deleteUserById(Long id) {
-        if (userRepository.existsById(id)){
+        @Override
+        @Transactional
+        public UserResponseDto updateUser(Long id, UpdateUserRequestDto requestDto) {
+            log.info("Attempting to update user with ID: {}", id);
+
+            User user = getUserEntityById(id);
+
+            if (!user.getUsername().equals(requestDto.getUsername())) {
+                if (userRepository.existsByUsername(requestDto.getUsername())) {
+                    log.warn("Update failed: Username '{}' is already taken", requestDto.getUsername());
+                    throw new DuplicateResourceException(
+                            "Username '" + requestDto.getUsername() + "' is already taken"
+                    );
+                }
+                log.debug("Username will be changed from '{}' to '{}'",
+                        user.getUsername(), requestDto.getUsername());
+            }
+
+            if (!user.getEmail().equals(requestDto.getEmail())) {
+                if (userRepository.existsByEmail(requestDto.getEmail())) {
+                    log.warn("Update failed: Email '{}' is already registered", requestDto.getEmail());
+                    throw new DuplicateResourceException(
+                            "Email '" + requestDto.getEmail() + "' is already registered"
+                    );
+                }
+                log.debug("Email will be changed from '{}' to '{}'",
+                        user.getEmail(), requestDto.getEmail());
+            }
+
+            user.setFirstName(requestDto.getFirstName());
+            user.setLastName(requestDto.getLastName());
+            user.setUsername(requestDto.getUsername());
+            user.setEmail(requestDto.getEmail());
+
+            if (requestDto.getPassword() != null && !requestDto.getPassword().isEmpty()) {
+                user.setPassword(passwordEncoder.encode(requestDto.getPassword()));
+                log.debug("Password will be updated for user ID: {}", id);
+            }
+
+            user.setUpdatedAt(LocalDateTime.now());
+
+            User updatedUser = userRepository.save(user);
+            log.info("User successfully updated with ID: {}", updatedUser.getId());
+
+            return userMapper.toResponseDto(updatedUser);
+        }
+
+
+        @Override
+        @Transactional
+        public void deleteUser(Long id) {
+            log.info("Attempting to delete user with ID: {}", id);
+
+            if (!userRepository.existsById(id)) {
+                log.warn("Delete failed: User with ID {} not found", id);
+                throw new ResourceNotFoundException("User with ID " + id + " not found");
+            }
+
             userRepository.deleteById(id);
-        } else {
-            throw new IllegalArgumentException("User Id " + id + " doesn't found");
+            log.info("User successfully deleted with ID: {}", id);
         }
-    }
 
-    @Override
-    public List<User> getAllUser() {
-        return userRepository.findAll();
-    }
-
-    @Override
-    public User patchUserInfo(Long id, PatchUserDataRequest patchUserDataRequest) {
-        Optional<User> existingUser = userRepository.findById(id);
-
-        if (existingUser.isPresent()){
-            User updateUser = existingUser.get();
-            if (patchUserDataRequest.getFirstName() != null){
-                updateUser.setFirstName(patchUserDataRequest.getFirstName());
-            }
-            if (patchUserDataRequest.getLastName() != null){
-                updateUser.setLastName(patchUserDataRequest.getLastName());
-            }
-            if (patchUserDataRequest.getUsername() != null) {
-                updateUser.setUsername(patchUserDataRequest.getUsername());
-            }
-            if (patchUserDataRequest.getEmail() != null) {
-                updateUser.setEmail(patchUserDataRequest.getEmail());
-            }
-            if (patchUserDataRequest.getPassword() != null) {
-                updateUser.setPassword(passwordEncoder.encode(patchUserDataRequest.getPassword()));
-            }
-            return userRepository.save(updateUser);
-        } else {
-            throw new EntityNotFoundException("User not found!");
+        @Override
+        public UserResponseDto getUserByEmailDto(String email) {
+            log.debug("Fetching user DTO for email: {}", email);
+            User user = getUserEntityByEmail(email);
+            return userMapper.toResponseDto(user);
         }
-    }
 
-    @Override
-    public User updateUserInfo(Long id, UpdateUserDataRequest updateUserDataRequest) {
-        Optional<User> existingUser = userRepository.findById(id);
-        if (existingUser.isPresent()) {
-            User updatedUser = existingUser.get();
-            updatedUser.setFirstName(updatedUser.getFirstName());
-            updatedUser.setLastName(updatedUser.getLastName());
-            updatedUser.setUsername(updateUserDataRequest.getUsername());
-            updatedUser.setEmail(updateUserDataRequest.getEmail());
-            updatedUser.setPassword(passwordEncoder.encode(updateUserDataRequest.getPassword()));
-            return userRepository.save(updatedUser);
-        } else {
-            throw new EntityNotFoundException("User not found!");
+        // INTERNE METHODEN
+        // Nur von anderen Services/Components verwendet!
+
+        @Override
+        public User getUserEntityById(Long id) {
+            log.debug("Fetching user entity for ID: {}", id);
+            return userRepository.findById(id)
+                    .orElseThrow(() -> {
+                        log.error("User with ID {} not found", id);
+                        return new ResourceNotFoundException("User with ID " + id + " not found");
+                    });
         }
-    }
 
-    @Override
-    public Optional<User> getUserByEmail(String email) {
-        return userRepository.findByEmail(email);
-    }
+        @Override
+        public User getUserEntityByEmail(String email) {
+            log.debug("Fetching user entity for email: {}", email);
+            return userRepository.findByEmail(email)
+                    .orElseThrow(() -> {
+                        log.error("User with email {} not found", email);
+                        return new ResourceNotFoundException("User with email " + email + " not found");
+                    });
+        }
+
+        @Override
+        public Optional<User> findUserByEmail(String email) {
+            log.debug("Finding user by email: {}", email);
+            return userRepository.findByEmail(email);
+        }
 }

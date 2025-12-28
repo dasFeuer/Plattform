@@ -1,15 +1,17 @@
 package com.project.unknown.domain.dtos.userDto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserDto {
+public class UserResponseDto {
     private Long id;
 
     private String firstName;
@@ -20,13 +22,7 @@ public class UserDto {
 
     private String email;
 
-//    private String password;
+    private boolean verified;
 
     private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
-
-    private boolean verified = false;
-
-    private LocalDateTime verifiedAt;
 }
