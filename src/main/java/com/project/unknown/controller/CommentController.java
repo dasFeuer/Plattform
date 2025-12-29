@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class CommentController {
     private final CommentService commentService;
 
+    // EndPoint für die Kommentarerstellung
     @PostMapping
     public ResponseEntity<CommentDto> createComment(
             @Valid @RequestBody CreateCommentRequestDto requestDto,
