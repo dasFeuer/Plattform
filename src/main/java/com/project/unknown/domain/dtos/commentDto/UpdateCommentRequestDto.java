@@ -10,13 +10,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateCommentDto {
+public class UpdateCommentRequestDto {
 
     @NotBlank(message = "Content is required")
     @Size(min = 1, max = 1000, message = "Content must be between 1 and 1000 characters")
     private String content;
-
-    @NotNull(message = "Post ID is required")
-    private Long postId;
 
 }
