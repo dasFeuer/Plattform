@@ -9,6 +9,9 @@ import com.project.unknown.domain.entities.userEntity.User;
 import com.project.unknown.exception.DuplicateResourceException;
 import com.project.unknown.exception.ResourceNotFoundException;
 import com.project.unknown.mapper.UserMapper;
+import com.project.unknown.repository.CommentRepository;
+import com.project.unknown.repository.PostRepository;
+import com.project.unknown.repository.ReactionRepository;
 import com.project.unknown.repository.UserRepository;
 import com.project.unknown.service.EmailVerificationTokenService;
 import com.project.unknown.service.UserService;
@@ -31,6 +34,9 @@ public class UserServiceImpl implements UserService {
         private final PasswordEncoder passwordEncoder;
         private final EmailVerificationTokenService emailVerificationTokenService;
         private final UserMapper userMapper;
+        private final PostRepository postRepository;
+        private final CommentRepository commentRepository;
+        private final ReactionRepository reactionRepository;
 
         @Override
         @Transactional
@@ -85,12 +91,34 @@ public class UserServiceImpl implements UserService {
         }
 
 
-        @Override
-        public UserProfileDto getUserProfile(Long id) {
-            log.debug("Fetching user profile for ID: {}", id);
-            User user = getUserEntityById(id);
-            return userMapper.toProfileDto(user);
-        }
+    @Override
+    public UserProfileDto getUserProfile(Long id) {
+        log.debug("Fetching user profile for ID: {}", id);
+
+        User user = getUserEntityById(id);
+
+        long totalPosts = postRepository.countByAuthorId(id);
+        long totalComments = commentRepository.countByAuthorId(id);
+        long totalReactions = reactionRepository.countByUserId(id);
+
+        UserProfileDto profileDto = UserProfileDto.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .verified(user.isVerified())
+                .createdAt(user.getCreatedAt())
+                .totalPosts(totalPosts)
+                .totalComments(totalComments)
+                .totalReactions(totalReactions)
+                .build();
+
+        log.debug("User profile stats - Posts: {}, Comments: {}, Reactions: {}",
+                totalPosts, totalComments, totalReactions);
+
+        return profileDto;
+    }
 
 
         @Override

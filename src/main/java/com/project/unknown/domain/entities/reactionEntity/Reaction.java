@@ -5,10 +5,7 @@ import com.project.unknown.domain.entities.postEntity.Post;
 import com.project.unknown.domain.entities.userEntity.User;
 import com.project.unknown.enums.ReactionType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
@@ -26,6 +23,7 @@ import java.util.Objects;
 )
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Reaction {

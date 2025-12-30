@@ -1,9 +1,8 @@
 package com.project.unknown.mapper;
 
-import com.project.unknown.domain.dtos.commentDto.CommentDto;
-import com.project.unknown.domain.entities.commentEntity.Comment;
+import com.project.unknown.domain.dtos.reactionDto.ReactionDto;
+import com.project.unknown.domain.entities.reactionEntity.Reaction;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import java.util.List;
@@ -11,12 +10,11 @@ import java.util.List;
 @Mapper(
         componentModel = "spring",
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
-        uses = {UserMapper.class}  //  UserMapper für Author mapping
+        uses = {UserMapper.class}
 )
-public interface CommentMapper {
+public interface ReactionMapper {
 
-    @Mapping(target = "reactionsCount", expression = "java((long) comment.getReactions().size())")
-    CommentDto toDto(Comment comment);
+    ReactionDto toDto(Reaction reaction);
 
-    List<CommentDto> toDtoList(List<Comment> comments);
+    List<ReactionDto> toDtoList(List<Reaction> reactions);
 }

@@ -28,14 +28,6 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    @GetMapping("/{id}/profile")
-    public ResponseEntity<UserProfileDto> getUserProfile(@PathVariable Long id) {
-        log.info("GET request received for user profile with ID: {}", id);
-        UserProfileDto profile = userService.getUserProfile(id);
-        log.debug("Successfully retrieved profile for user ID: {}", id);
-        return ResponseEntity.ok(profile);
-    }
-
     @GetMapping
     public ResponseEntity<List<UserProfileDto>> getAllUsers() {
         log.info("GET request received for all users");
@@ -71,5 +63,12 @@ public class UserController {
         log.info("User successfully deleted with ID: {}", id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/profile")
+    public ResponseEntity<UserProfileDto> getUserProfile(@PathVariable Long id) {
+        log.info("GET request for user profile with ID: {}", id);
+        UserProfileDto profile = userService.getUserProfile(id);
+        return ResponseEntity.ok(profile);
     }
 }

@@ -1,10 +1,9 @@
 package com.project.unknown.controller;
 
-import com.project.unknown.domain.PagedResponse;
-import com.project.unknown.domain.dtos.commentDto.CommentDto;
-import com.project.unknown.domain.dtos.commentDto.CreateCommentRequestDto;
-import com.project.unknown.domain.dtos.commentDto.UpdateCommentRequestDto;
-import com.project.unknown.service.CommentService;
+import com.project.unknown.domain.dtos.reactionDto.CreateReactionRequestDto;
+import com.project.unknown.domain.dtos.reactionDto.ReactionDto;
+import com.project.unknown.domain.dtos.reactionDto.ReactionsSummaryDto;
+import com.project.unknown.service.ReactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,84 +15,64 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/comments")
+@RequestMapping("/api/reactions")
 @Slf4j
-public class CommentController {
-    private final CommentService commentService;
+public class ReactionController {
+    private final ReactionService reactionService;
 
-    // EndPoint für die Kommentarerstellung
     @PostMapping
-    public ResponseEntity<CommentDto> createComment(
-            @Valid @RequestBody CreateCommentRequestDto requestDto,
+    public ResponseEntity<ReactionDto> addOrUpdateReaction(
+            @Valid @RequestBody CreateReactionRequestDto requestDto,
             Authentication authentication) {
 
-        log.info("POST request to create comment for post ID: '{}'", requestDto.getPostId());
-
+        log.info("POST request to add/update reaction");
         String authorEmail = authentication.getName();
-        CommentDto createdComment = commentService.createComment(requestDto, authorEmail);
-
-        log.info("Post created successfully with ID: {}", createdComment.getId());
-
+        ReactionDto reaction = reactionService.addOrUpdateReaction(requestDto, authorEmail);
+        log.info("Reaction added/updated successfully with ID: {}", reaction.getId());
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(createdComment);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<CommentDto> getCommentById(@PathVariable Long id) {
-        log.info("GET request for comment with ID: {}", id);
-
-        CommentDto comment = commentService.getCommentById(id);
-
-        return ResponseEntity.ok(comment);
-    }
-
-    @GetMapping("/post/{postId}")
-    public ResponseEntity<PagedResponse<CommentDto>> getCommentByPost(
-            @PathVariable Long postId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        log.info("GET request for comments of post ID: {} - page: {}, size: {}", postId, page, size);
-
-        PagedResponse<CommentDto> comments = commentService.getCommentsByPostId(postId, page, size);
-        return ResponseEntity.ok(comments);
-    }
-
-    @GetMapping("/author/{authorId}")
-    public ResponseEntity<PagedResponse<CommentDto>> getCommentsByAuthor(
-            @PathVariable Long authorId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        log.info("GET request for comments of post ID: {} - page: {}, size: {}", authorId, page, size);
-
-        PagedResponse<CommentDto> comments = commentService.getCommentsByAuthorId(authorId, page, size);
-        return ResponseEntity.ok(comments);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<CommentDto> updateComment(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateCommentRequestDto requestDto,
-            Authentication authentication) {
-
-        log.info("PUT request to update comment with ID: {}", id);
-
-        String authorEmail = authentication.getName();
-        CommentDto updatedComment = commentService.updateComment(id, requestDto, authorEmail);
-
-        return ResponseEntity.ok(updatedComment);
+                .body(reaction);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteComment(
+    public ResponseEntity<Void> removeReaction(
             @PathVariable Long id,
             Authentication authentication) {
 
-        log.info("DELETE request for comment with ID: {}", id);
+        log.info("DELETE request for reaction with ID: {}", id);
 
-        String authorEmail = authentication.getName();
-        commentService.deleteComment(id, authorEmail);
+        String userEmail = authentication.getName();
+        reactionService.removeReaction(id, userEmail);
+
+        log.info("Reaction {} removed successfully", id);
 
         return ResponseEntity.noContent().build();
+    }
+
+
+    @GetMapping("/post/{postId}/summary")
+    public ResponseEntity<ReactionsSummaryDto> getPostReactionsSummary(
+            @PathVariable Long postId,
+            Authentication authentication) {
+
+        log.info("GET request for reactions summary of post ID: {}", postId);
+
+        String currentUserEmail = authentication != null ? authentication.getName() : null;
+        ReactionsSummaryDto summary = reactionService.getPostReactionsSummary(postId, currentUserEmail);
+
+        return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/comment/{commentId}/summary")
+    public ResponseEntity<ReactionsSummaryDto> getCommentReactionsSummary(
+            @PathVariable Long commentId,
+            Authentication authentication) {
+
+        log.info("GET request for reactions summary of comment ID: {}", commentId);
+
+        String currentUserEmail = authentication != null ? authentication.getName() : null;
+        ReactionsSummaryDto summary = reactionService.getCommentReactionsSummary(commentId, currentUserEmail);
+
+        return ResponseEntity.ok(summary);
     }
 }

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateReactionDto {
+public class CreateReactionRequestDto {
 
     @NotNull(message = "Reaction type is required")
     private ReactionType type;

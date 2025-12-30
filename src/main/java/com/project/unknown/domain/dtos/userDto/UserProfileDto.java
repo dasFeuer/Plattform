@@ -27,8 +27,8 @@ public class UserProfileDto {
     private LocalDateTime createdAt;
 
 
-//    private Long totalPosts;
-//    private Long totalComments;
-//    private Long totalReactions;
+    private Long totalPosts;
+    private Long totalComments;
+    private Long totalReactions;
 
 }
