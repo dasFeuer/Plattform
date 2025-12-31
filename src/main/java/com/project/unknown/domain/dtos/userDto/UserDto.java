@@ -26,6 +26,8 @@ public class UserDto {
 
     private LocalDateTime updatedAt;
 
+    private String profileImagePath;
+
     private boolean verified = false;
 
     private LocalDateTime verifiedAt;

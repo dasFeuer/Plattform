@@ -1,15 +1,21 @@
 package com.project.unknown.controller;
 
 import com.project.unknown.domain.PagedResponse;
+import com.project.unknown.domain.dtos.mediaDto.MediaDto;
 import com.project.unknown.domain.dtos.postDto.*;
+import com.project.unknown.service.impl.FileStorageServiceImpl;
 import com.project.unknown.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 
 @RestController
@@ -18,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class PostController {
     private final PostService postService;
+    private final FileStorageServiceImpl fileStorageService;
 
     @PostMapping
     public ResponseEntity<PostDetailDto> createPost(
@@ -124,6 +131,33 @@ public class PostController {
 
         log.info("Post {} deleted successfully", id);
 
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/{postId}/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<MediaDto>> uploadPostMedia(
+            @PathVariable Long postId,
+            @RequestParam("files") MultipartFile[] files,
+            Authentication authentication) {
+
+        log.info("Upload media request for post ID: {}", postId);
+
+        try {
+            List<MediaDto> uploadedMedia = postService.addMediaToPost(postId, files, authentication.getName());
+            return ResponseEntity.ok(uploadedMedia);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid files: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @DeleteMapping("/media/{mediaId}")
+    public ResponseEntity<Void> deleteMedia(
+            @PathVariable Long mediaId,
+            Authentication authentication) {
+
+        log.info("Delete media request for media ID: {}", mediaId);
+        postService.deleteMedia(mediaId, authentication.getName());
         return ResponseEntity.noContent().build();
     }
 }

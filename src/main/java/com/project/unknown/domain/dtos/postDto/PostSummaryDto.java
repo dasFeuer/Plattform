@@ -1,5 +1,6 @@
 package com.project.unknown.domain.dtos.postDto;
 
+import com.project.unknown.domain.dtos.mediaDto.MediaDto;
 import com.project.unknown.domain.dtos.userDto.AuthorDto;
 import com.project.unknown.domain.entities.commentEntity.Comment;
 import com.project.unknown.domain.entities.reactionEntity.Reaction;
@@ -29,6 +30,8 @@ public class PostSummaryDto {
     private Long reactionsCount;
 
 //    private Map<ReactionType, Long> reactionSummary;
+
+    private MediaDto firstMedia;
 
     private LocalDateTime createdAt;
 

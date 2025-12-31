@@ -37,6 +37,7 @@ public class UserServiceImpl implements UserService {
         private final PostRepository postRepository;
         private final CommentRepository commentRepository;
         private final ReactionRepository reactionRepository;
+        private final FileStorageServiceImpl fileStorageService;
 
         @Override
         @Transactional
@@ -109,6 +110,7 @@ public class UserServiceImpl implements UserService {
                 .email(user.getEmail())
                 .verified(user.isVerified())
                 .createdAt(user.getCreatedAt())
+                .profileImagePath(user.getProfileImagePath())
                 .totalPosts(totalPosts)
                 .totalComments(totalComments)
                 .totalReactions(totalReactions)
@@ -121,13 +123,42 @@ public class UserServiceImpl implements UserService {
     }
 
 
-        @Override
-        public List<UserProfileDto> getAllUsers() {
-            log.debug("Fetching all users");
-            List<User> users = userRepository.findAll();
-            log.debug("Found {} users", users.size());
-            return userMapper.toProfileDtoList(users);
-        }
+    @Override
+    public List<UserResponseDto> getAllUsers() {
+        log.debug("Fetching all users");
+        List<User> users = userRepository.findAll();
+        return userMapper.toResponseDtoList(users);
+    }
+
+//    @Override
+//    public List<UserProfileDto> getAllUsers() {
+//        log.debug("Fetching all users with stats");
+//
+//        List<User> users = userRepository.findAll();
+//
+//        // Für jeden User Stats berechnen
+//        return users.stream()
+//                .map(user -> {
+//                    long totalPosts = postRepository.countByAuthorId(user.getId());
+//                    long totalComments = commentRepository.countByAuthorId(user.getId());
+//                    long totalReactions = reactionRepository.countByUserId(user.getId());
+//
+//                    return UserProfileDto.builder()
+//                            .id(user.getId())
+//                            .firstName(user.getFirstName())
+//                            .lastName(user.getLastName())
+//                            .username(user.getUsername())
+//                            .email(user.getEmail())
+//                            .verified(user.isVerified())
+//                            .createdAt(user.getCreatedAt())
+//                            .profileImagePath(user.getProfileImagePath())
+//                            .totalPosts(totalPosts)
+//                            .totalComments(totalComments)
+//                            .totalReactions(totalReactions)
+//                            .build();
+//                })
+//                .collect(Collectors.toList());
+//    }
 
         @Override
         @Transactional
@@ -191,12 +222,40 @@ public class UserServiceImpl implements UserService {
             log.info("User successfully deleted with ID: {}", id);
         }
 
-        @Override
-        public UserResponseDto getUserByEmailDto(String email) {
-            log.debug("Fetching user DTO for email: {}", email);
-            User user = getUserEntityByEmail(email);
-            return userMapper.toResponseDto(user);
+
+    @Override
+    @Transactional
+    public UserResponseDto updateProfileImage(Long userId, String imagePath) {
+        log.info("Updating profile image for user ID: {}", userId);
+
+        User user = getUserEntityById(userId);
+
+        // Altes Bild löschen
+        if (user.getProfileImagePath() != null) {
+            fileStorageService.deleteFile(user.getProfileImagePath());
         }
+
+        // Neues Bild setzen
+        user.setProfileImagePath(imagePath);
+        User updatedUser = userRepository.save(user);
+
+        log.info("Profile image updated for user ID: {}", userId);
+        return userMapper.toResponseDto(updatedUser);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProfileImage(Long userId) {
+        log.info("Deleting profile image for user ID: {}", userId);
+
+        User user = getUserEntityById(userId);
+
+        if (user.getProfileImagePath() != null) {
+            fileStorageService.deleteFile(user.getProfileImagePath());
+            user.setProfileImagePath(null);
+            userRepository.save(user);
+        }
+    }
 
         // INTERNE METHODEN
         // Nur von anderen Services/Components verwendet!

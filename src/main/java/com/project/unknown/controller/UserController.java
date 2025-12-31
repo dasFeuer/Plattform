@@ -2,12 +2,16 @@ package com.project.unknown.controller;
 
 import com.project.unknown.config.GeneralEndPointAccess;
 import com.project.unknown.domain.dtos.userDto.*;
+import com.project.unknown.service.impl.FileStorageServiceImpl;
 import com.project.unknown.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -19,6 +23,7 @@ public class UserController {
 
     private final UserService userService;
     private final GeneralEndPointAccess endPointAccess;
+    private final FileStorageServiceImpl fileStorageServiceImpl;
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
@@ -29,11 +34,17 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserProfileDto>> getAllUsers() {
-        log.info("GET request received for all users");
-        List<UserProfileDto> users = userService.getAllUsers();
-        log.debug("Successfully retrieved {} users", users.size());
+    public ResponseEntity<List<UserResponseDto>> getAllUsers() {
+        log.info("GET request for all users");
+        List<UserResponseDto> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/{id}/profile")
+    public ResponseEntity<UserProfileDto> getUserProfile(@PathVariable Long id) {
+        log.info("GET request for user profile with ID: {}", id);
+        UserProfileDto profile = userService.getUserProfile(id);
+        return ResponseEntity.ok(profile);
     }
 
     @PutMapping("/{id}")
@@ -65,10 +76,38 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/profile")
-    public ResponseEntity<UserProfileDto> getUserProfile(@PathVariable Long id) {
-        log.info("GET request for user profile with ID: {}", id);
-        UserProfileDto profile = userService.getUserProfile(id);
-        return ResponseEntity.ok(profile);
+    @PostMapping(value = "/{id}/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserResponseDto> uploadProfileImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
+
+        log.info("Upload profile image request for user ID: {}", id);
+
+        // Nur eigenes Bild hochladen
+        endPointAccess.validateUserAccess(id);
+
+//        String email = authentication.getName();
+//        userService.findUserByEmail(email);
+        try {
+            String imagePath = fileStorageServiceImpl.saveProfileImage(file, id);
+            UserResponseDto updatedUser = userService.updateProfileImage(id, imagePath);
+            return ResponseEntity.ok(updatedUser);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid file: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @DeleteMapping("/{id}/profile-image")
+    public ResponseEntity<Void> deleteProfileImage(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        log.info("Delete profile image request for user ID: {}", id);
+        endPointAccess.validateUserAccess(id);
+
+        userService.deleteProfileImage(id);
+        return ResponseEntity.noContent().build();
     }
 }

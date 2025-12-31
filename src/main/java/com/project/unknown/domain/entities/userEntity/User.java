@@ -57,6 +57,9 @@ public class User {
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;
 
+    @Column(name = "profile_image_path")
+    private String profileImagePath;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

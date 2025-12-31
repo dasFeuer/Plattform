@@ -1,14 +1,18 @@
 package com.project.unknown.service.impl;
 
 import com.project.unknown.domain.PagedResponse;
+import com.project.unknown.domain.dtos.mediaDto.MediaDto;
 import com.project.unknown.domain.dtos.postDto.CreatePostRequestDto;
 import com.project.unknown.domain.dtos.postDto.PostDetailDto;
 import com.project.unknown.domain.dtos.postDto.PostSummaryDto;
 import com.project.unknown.domain.dtos.postDto.UpdatePostRequestDto;
+import com.project.unknown.domain.entities.mediaEntity.Media;
 import com.project.unknown.domain.entities.postEntity.Post;
 import com.project.unknown.domain.entities.userEntity.User;
 import com.project.unknown.exception.ResourceNotFoundException;
+import com.project.unknown.mapper.MediaMapper;
 import com.project.unknown.mapper.PostMapper;
+import com.project.unknown.repository.MediaRepository;
 import com.project.unknown.repository.PostRepository;
 import com.project.unknown.service.PostService;
 import com.project.unknown.service.UserService;
@@ -21,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -36,6 +41,9 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final UserService userService;
     private final PostMapper postMapper;
+    private final MediaMapper mediaMapper;
+    private final FileStorageServiceImpl fileStorageService;
+    private final MediaRepository mediaRepository;
 
 
     @Override
@@ -205,6 +213,54 @@ public class PostServiceImpl implements PostService {
         // Löschen
         postRepository.deleteById(id);
         log.info("Post {} deleted successfully", id);
+    }
+
+    @Transactional
+    public List<MediaDto> addMediaToPost(Long postId, MultipartFile[] files, String authorEmail) {
+        log.info("Adding {} media files to post ID: {}", files.length, postId);
+
+        Post post = getPostEntityById(postId);
+
+        User author = userService.getUserEntityByEmail(authorEmail);
+        if (!post.getAuthor().getId().equals(author.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only add media to your own posts");
+        }
+
+        List<Media> mediaList = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            String filePath = fileStorageService.savePostMedia(file, postId);
+
+            Media media = Media.builder()
+                    .fileName(file.getOriginalFilename())
+                    .filePath(filePath)
+                    .fileType(file.getContentType())
+                    .fileSize(file.getSize())
+                    .post(post)
+                    .uploadedAt(LocalDateTime.now())
+                    .build();
+
+            mediaList.add(mediaRepository.save(media));
+        }
+
+        log.info("Successfully added {} media files to post {}", mediaList.size(), postId);
+        return mediaMapper.toDtoList(mediaList);
+    }
+
+    @Transactional
+    public void deleteMedia(Long mediaId, String authorEmail) {
+        log.info("Deleting media with ID: {}", mediaId);
+
+        Media media = mediaRepository.findById(mediaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Media not found"));
+
+        User author = userService.getUserEntityByEmail(authorEmail);
+        if (!media.getPost().getAuthor().getId().equals(author.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only delete media from your own posts");
+        }
+
+        fileStorageService.deleteFile(media.getFilePath());
+        mediaRepository.deleteById(mediaId);
     }
 
     @Override

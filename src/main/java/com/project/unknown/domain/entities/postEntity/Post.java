@@ -1,5 +1,6 @@
 package com.project.unknown.domain.entities.postEntity;
 
+import com.project.unknown.domain.entities.mediaEntity.Media;
 import com.project.unknown.domain.entities.reactionEntity.Reaction;
 import com.project.unknown.domain.entities.commentEntity.Comment;
 import com.project.unknown.domain.entities.userEntity.User;
@@ -43,6 +44,10 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Reaction> reactions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Media> mediaFiles = new ArrayList<>();
 
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)

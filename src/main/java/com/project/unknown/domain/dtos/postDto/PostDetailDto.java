@@ -1,6 +1,7 @@
 package com.project.unknown.domain.dtos.postDto;
 
 import com.project.unknown.domain.dtos.commentDto.CommentDto;
+import com.project.unknown.domain.dtos.mediaDto.MediaDto;
 import com.project.unknown.domain.dtos.reactionDto.ReactionDto;
 import com.project.unknown.domain.dtos.userDto.AuthorDto;
 import com.project.unknown.enums.ReactionType;
@@ -24,6 +25,7 @@ public class PostDetailDto {
     // Counts für Comments/Reactions
     private Long commentsCount;
     private Long reactionsCount;
+    private List<MediaDto> mediaFiles;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -24,5 +24,7 @@ public class UserResponseDto {
 
     private boolean verified;
 
+    private String profileImagePath;
+
     private LocalDateTime createdAt;
 }
