@@ -11,6 +11,12 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AuthResponseDto {
     private String token;
-    private Long expiresIn;
-    private String tokenType = "Bearer";
+    private String tokenType;
+    private long expiresIn;
+
+    private Long userId;
+    private String username;
+    private String email;
+    private String firstName;
+    private String lastName;
 }
